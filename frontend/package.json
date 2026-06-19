@@ -1,5 +1,5 @@
 {
-  "name": "squalid-star",
+  "name": "frontend",
   "type": "module",
   "version": "0.0.1",
   "engines": {
@@ -12,6 +12,26 @@
     "astro": "astro"
   },
   "dependencies": {
-    "astro": "^6.4.7"
+    "@astrojs/react": "^5.0.7",
+    "@gsap/react": "^2.1.2",
+    "@tailwindcss/vite": "^4.3.1",
+    "@tsparticles/engine": "^4.2.0",
+    "@tsparticles/react": "^4.2.0",
+    "@tsparticles/slim": "^4.2.0",
+    "astro": "^6.4.7",
+    "framer-motion": "^12.40.0",
+    "gsap": "^3.15.0",
+    "lenis": "^1.3.23",
+    "lottie-react": "^2.4.1",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-icons": "^5.6.0",
+    "react-type-animation": "^3.2.0",
+    "split-type": "^0.3.4",
+    "tailwindcss": "^4.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3"
   }
 }

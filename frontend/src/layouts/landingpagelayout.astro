@@ -1,0 +1,25 @@
+---
+import "../styles/global.css";
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = "Akash Singh — Portfolio",
+  description = "Creative developer crafting immersive 3D web experiences.",
+} = Astro.props;
+---
+
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <title>{title}</title>
+  </head>
+  <body class="bg-[#06060a] text-white antialiased overflow-x-hidden">
+    <slot />
+  </body>
+</html>
