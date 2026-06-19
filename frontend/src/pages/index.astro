@@ -1,18 +1,9 @@
 ---
-import Hero from "../components/hero-section/herosection";
-import Landing from "../layouts/landingpagelayout";
-import "../styles/global.css";
-
+import Landing from "../layouts/landingpagelayout.astro";
+import App from "../components/App";
 ---
 
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Akash Singh — Portfolio</title>
-  </head>
-  <body>
-    <Hero client:load />
-  </body>
-</html>
-/>
+<Landing title="Akash Singh — Playable Portfolio">
+  <App client:only="react" />
+</Landing>
+
