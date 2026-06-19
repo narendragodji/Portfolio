@@ -1,13 +1,17 @@
 import { useEffect, useRef, useState } from "react";
+import type { SectionId } from "../../data/profile";
 
 type Line =
   | { kind: "prompt"; text: string; speed?: number }
   | { kind: "output"; text: string; delay?: number }
-  | { kind: "wait"; ms: number };
+  | { kind: "wait"; ms: number }
+  | { kind: "open"; section: SectionId };
 
 type Props = {
   /** Called once the terminal finishes its scripted boot sequence. */
   onLaunch: () => void;
+  /** Called when the script wants the desktop to open a section window. */
+  onOpenSection?: (id: SectionId) => void;
 };
 
 /**
@@ -26,40 +30,48 @@ const SCRIPT: Line[] = [
   { kind: "prompt", text: "ls", speed: 55 },
   {
     kind: "output",
-    text: "about.txt  experience.log  projects/  contact.mail  akash.exe",
+    text: "about.txt  experience.log  projects/  contact.mail",
   },
-  { kind: "wait", ms: 300 },
-  { kind: "prompt", text: "npm install", speed: 35 },
-  { kind: "output", text: "" },
-  { kind: "output", text: "added 1337 packages, audited 2048 packages in 2s" },
-  { kind: "output", text: "found 0 vulnerabilities  ✨" },
-  { kind: "wait", ms: 250 },
-  { kind: "prompt", text: "npm run dev", speed: 45 },
-  { kind: "output", text: "" },
-  { kind: "output", text: "> portfolio@2.6.0 dev" },
-  { kind: "output", text: "> vite --open" },
-  { kind: "wait", ms: 200 },
-  { kind: "output", text: "" },
-  { kind: "output", text: "  VITE v7.0.0  ready in 312 ms" },
-  { kind: "output", text: "" },
-  { kind: "output", text: "  ➜  Local:   http://localhost:5173/" },
-  { kind: "output", text: "  ➜  Network: use --host to expose" },
-  { kind: "wait", ms: 250 },
-  { kind: "prompt", text: "./akash.exe --launch", speed: 40 },
-  { kind: "output", text: "" },
-  { kind: "output", text: "[boot] loading scene: HUB_WORLD" },
-  { kind: "output", text: "[boot] mounting WASD controls..." },
-  { kind: "output", text: "[boot] rendering 3D portfolio room ✓" },
   { kind: "wait", ms: 350 },
-  { kind: "output", text: "→ launching akash.exe ..." },
+
+  /* --- open each section window one by one --- */
+  { kind: "prompt", text: "open about.txt", speed: 50 },
+  { kind: "output", text: "→ launching About.txt …" },
+  { kind: "open", section: "about" },
+  { kind: "wait", ms: 650 },
+
+  { kind: "prompt", text: "open experience.log", speed: 50 },
+  { kind: "output", text: "→ launching Resume.log …" },
+  { kind: "open", section: "experience" },
+  { kind: "wait", ms: 650 },
+
+  { kind: "prompt", text: "open projects/", speed: 50 },
+  { kind: "output", text: "→ launching Projects …" },
+  { kind: "open", section: "projects" },
+  { kind: "wait", ms: 650 },
+
+  { kind: "prompt", text: "open contact.mail", speed: 50 },
+  { kind: "output", text: "→ launching Mail …" },
+  { kind: "open", section: "contact" },
+  { kind: "wait", ms: 450 },
+
+  { kind: "output", text: "" },
+  { kind: "output", text: "All windows ready. Type 'help' or click around." },
 ];
 
-export default function Terminal({ onLaunch }: Props) {
+export default function Terminal({ onLaunch, onOpenSection }: Props) {
   const [history, setHistory] = useState<Array<{ kind: string; text: string }>>([]);
   const [typing, setTyping] = useState<string>("");
   const [cursorOn, setCursorOn] = useState(true);
   const [done, setDone] = useState(false);
   const launchedRef = useRef(false);
+
+  // Keep latest callbacks in refs so the script effect doesn't restart when
+  // the parent re-creates them after launching.
+  const onLaunchRef = useRef(onLaunch);
+  onLaunchRef.current = onLaunch;
+  const onOpenSectionRef = useRef(onOpenSection);
+  onOpenSectionRef.current = onOpenSection;
 
   // Blinking cursor
   useEffect(() => {
@@ -67,7 +79,7 @@ export default function Terminal({ onLaunch }: Props) {
     return () => clearInterval(id);
   }, []);
 
-  // Drive the scripted timeline
+  // Drive the scripted timeline (runs exactly once on mount)
   useEffect(() => {
     let cancelled = false;
     let timers: ReturnType<typeof setTimeout>[] = [];
@@ -83,6 +95,8 @@ export default function Terminal({ onLaunch }: Props) {
         if (cancelled) return;
         if (line.kind === "wait") {
           await sleep(line.ms);
+        } else if (line.kind === "open") {
+          onOpenSectionRef.current?.(line.section);
         } else if (line.kind === "output") {
           await sleep(line.delay ?? 90);
           if (cancelled) return;
@@ -106,11 +120,11 @@ export default function Terminal({ onLaunch }: Props) {
       }
       if (cancelled) return;
       setDone(true);
-      // brief pause then "launch"
+      // brief pause then fire the launch callback
       await sleep(450);
       if (cancelled || launchedRef.current) return;
       launchedRef.current = true;
-      onLaunch();
+      onLaunchRef.current();
     };
 
     run();
@@ -119,7 +133,7 @@ export default function Terminal({ onLaunch }: Props) {
       cancelled = true;
       timers.forEach(clearTimeout);
     };
-  }, [onLaunch]);
+  }, []);
 
   return (
     <div

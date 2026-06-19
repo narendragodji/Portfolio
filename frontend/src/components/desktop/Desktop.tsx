@@ -1,6 +1,5 @@
 import { AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
-import Game from "../game/Game";
 import type { SectionId } from "../../data/profile";
 import Window from "./Window";
 import Terminal from "./Terminal";
@@ -8,7 +7,7 @@ import { SectionApp, WINDOW_META } from "./SectionApps";
 
 /* ----------------------------- Window state ------------------------------ */
 
-type WindowId = "terminal" | "game" | SectionId;
+type WindowId = "terminal" | SectionId;
 
 type WindowState = {
   id: WindowId;
@@ -20,7 +19,6 @@ type WindowState = {
 /* Default geometries — rough percentages of the desktop region, but resolved
  * to pixels when the window first opens (Window stores pixel positions). */
 const TERMINAL_INITIAL = { x: 80, y: 80, w: 640, h: 360 };
-const GAME_INITIAL = { x: 130, y: 70, w: 980, h: 600 };
 const SECTION_INITIAL: Record<SectionId, { x: number; y: number; w: number; h: number }> = {
   about: { x: 200, y: 130, w: 720, h: 520 },
   experience: { x: 240, y: 160, w: 720, h: 520 },
@@ -30,7 +28,6 @@ const SECTION_INITIAL: Record<SectionId, { x: number; y: number; w: number; h: n
 
 const TITLES: Record<WindowId, string> = {
   terminal: "akash@portfolio: ~ — bash",
-  game: "akash.exe — Portfolio Hub",
   about: WINDOW_META.about.title,
   experience: WINDOW_META.experience.title,
   projects: WINDOW_META.projects.title,
@@ -39,7 +36,6 @@ const TITLES: Record<WindowId, string> = {
 
 const ACCENTS: Record<WindowId, string> = {
   terminal: "#34d399",
-  game: "#ff66c4",
   about: WINDOW_META.about.accent,
   experience: WINDOW_META.experience.accent,
   projects: WINDOW_META.projects.accent,
@@ -48,7 +44,6 @@ const ACCENTS: Record<WindowId, string> = {
 
 const ICONS: Record<WindowId, string> = {
   terminal: "▷_",
-  game: "🎮",
   about: WINDOW_META.about.icon,
   experience: WINDOW_META.experience.icon,
   projects: WINDOW_META.projects.icon,
@@ -71,17 +66,32 @@ export default function Desktop() {
     return () => clearInterval(id);
   }, []);
 
-  const openWindow = (id: WindowId) => {
+  const openWindow = (id: WindowId, opts?: { maximized?: boolean }) => {
     setWindows((ws) => {
       const exists = ws.find((w) => w.id === id);
       const nextZ = zCounter + 1;
       setZCounter(nextZ);
       if (exists) {
         return ws.map((w) =>
-          w.id === id ? { ...w, z: nextZ, minimized: false } : w
+          w.id === id
+            ? {
+                ...w,
+                z: nextZ,
+                minimized: false,
+                maximized: opts?.maximized ?? w.maximized,
+              }
+            : w
         );
       }
-      return [...ws, { id, z: nextZ, minimized: false, maximized: false }];
+      return [
+        ...ws,
+        {
+          id,
+          z: nextZ,
+          minimized: false,
+          maximized: opts?.maximized ?? false,
+        },
+      ];
     });
   };
 
@@ -113,22 +123,19 @@ export default function Desktop() {
 
   const isOpen = (id: WindowId) => windows.some((w) => w.id === id);
 
-  // When terminal finishes the boot script, "launch" the game window.
-  const handleLaunchGame = () => {
-    openWindow("game");
-  };
-
-  // Game (embedded) requests opening a section
-  const handleSectionOpen = (id: SectionId) => {
+  // The terminal types out a series of `open` commands; each one asks us
+  // to pop the corresponding section window.
+  const handleOpenSection = (id: SectionId) => {
     openWindow(id);
   };
 
-  // Game window is the focused/foreground window? Pause the player otherwise
-  // so WASD doesn't move the avatar when a section window is on top.
+  // Fires when the boot script finishes. Nothing more to do — the script
+  // already opened every window.
+  const handleTerminalBootDone = () => {};
+
   const topWindow = windows
     .filter((w) => !w.minimized)
     .sort((a, b) => b.z - a.z)[0];
-  const gamePaused = topWindow?.id !== "game";
 
   const clockText = now.toLocaleTimeString([], {
     hour: "2-digit",
@@ -190,16 +197,13 @@ export default function Desktop() {
               onToggleMaximize={() => toggleMax(w.id)}
               bodyClassName={w.id === "terminal" ? "bg-black" : ""}
             >
-              {w.id === "terminal" && <Terminal onLaunch={handleLaunchGame} />}
-              {w.id === "game" && (
-                <Game
-                  autoStart
-                  embedded
-                  paused={gamePaused}
-                  onSectionOpen={handleSectionOpen}
+              {w.id === "terminal" && (
+                <Terminal
+                  onLaunch={handleTerminalBootDone}
+                  onOpenSection={handleOpenSection}
                 />
               )}
-              {w.id !== "terminal" && w.id !== "game" && (
+              {w.id !== "terminal" && (
                 <SectionApp id={w.id as SectionId} />
               )}
             </Window>
@@ -263,7 +267,6 @@ export default function Desktop() {
 
 function initialFor(id: WindowId) {
   if (id === "terminal") return TERMINAL_INITIAL;
-  if (id === "game") return GAME_INITIAL;
   return SECTION_INITIAL[id as SectionId];
 }
 
@@ -283,7 +286,6 @@ function DesktopIcons({
 }) {
   const icons: Array<{ id: WindowId; label: string; glyph: string }> = [
     { id: "terminal", label: "Terminal", glyph: "▷_" },
-    { id: "game", label: "akash.exe", glyph: "🎮" },
     { id: "about", label: "About.txt", glyph: "📝" },
     { id: "experience", label: "Resume.log", glyph: "📜" },
     { id: "projects", label: "Projects", glyph: "📁" },
